@@ -15,331 +15,171 @@
 #include <stddef.h>
 
 template <class T>
-struct DListNode
-{
-	T data;
-	DListNode<T> *next;
+struct DListNode {
+    T data;
+    DListNode<T>* next;
 };
 
 template <typename T>
-class DLinkedList
-{
-
+class DLinkedList {
 protected:
-	int _size;
-	DListNode<T> *root;
-	DListNode<T> *last;
+    int _size;
+    DListNode<T>* root;
+    DListNode<T>* last;
 
-	// Helps "get" method, by saving last position
-	DListNode<T> *lastNodeGot;
-	int lastIndexGot;
-	// isCached should be set to FALSE
-	// everytime the list suffer changes
-	bool isCached;
-
-	DListNode<T> *getNode(int index);
+    DListNode<T>* getNode(int index);
 
 public:
-	DLinkedList();
-	~DLinkedList();
+    DLinkedList();
+    ~DLinkedList();
 
-	/*
-		Returns current size of LinkedList
-	*/
-	virtual int size();
-	/*
-		Adds a T object in the specified index;
-		Unlink and link the LinkedList correcly;
-		Increment _size
-	*/
-	virtual bool add(int index, T);
-	/*
-		Adds a T object in the end of the LinkedList;
-		Increment _size;
-	*/
-	virtual bool add(T);
-	/*
-		Adds a T object in the start of the LinkedList;
-		Increment _size;
-	*/
-	virtual bool unshift(T);
-	/*
-		Set the object at index, with T;
-		Increment _size;
-	*/
-	virtual bool set(int index, T);
-	/*
-		Remove object at index;
-		If index is not reachable, returns false;
-		else, decrement _size
-	*/
-	virtual T remove(int index);
-	/*
-		Remove last object;
-	*/
-	virtual T pop();
-	/*
-		Remove first object;
-	*/
-	virtual T shift();
-	/*
-		Get the index'th element on the list;
-		Return Element if accessible,
-		else, return false;
-	*/
-	virtual T get(int index);
-
-	/*
-		Clear the entire array
-	*/
-	virtual void clear();
+    int size() const;
+    bool add(int index, T value);
+    bool add(T value);
+    bool unshift(T value);
+    bool set(int index, T value);
+    T remove(int index);
+    T pop();
+    T shift();
+    T get(int index);
+    void clear();
 };
 
-// Initialize LinkedList with false values
+// Initialize LinkedList with default values
 template <typename T>
-DLinkedList<T>::DLinkedList()
-{
-	root = NULL;
-	last = NULL;
-	_size = 0;
-
-	lastNodeGot = root;
-	lastIndexGot = 0;
-	isCached = false;
-}
+DLinkedList<T>::DLinkedList() : _size(0), root(NULL), last(NULL) {}
 
 // Clear Nodes and free Memory
 template <typename T>
-DLinkedList<T>::~DLinkedList()
-{
-	DListNode<T> *tmp;
-	while (root != NULL)
-	{
-		tmp = root;
-		root = root->next;
-		delete tmp;
-	}
-	last = NULL;
-	_size = 0;
-	isCached = false;
+DLinkedList<T>::~DLinkedList() {
+    clear();
 }
 
-/*
-	Actualy "logic" coding
-*/
-
+// Get node at specific index
 template <typename T>
-DListNode<T> *DLinkedList<T>::getNode(int index)
-{
-
-	int _pos = 0;
-	DListNode<T> *current = root;
-
-	// Check if the node trying to get is
-	// immediatly AFTER the previous got one
-	if (isCached && lastIndexGot <= index)
-	{
-		_pos = lastIndexGot;
-		current = lastNodeGot;
-	}
-
-	while (_pos < index && current)
-	{
-		current = current->next;
-
-		_pos++;
-	}
-
-	// Check if the object index got is the same as the required
-	if (_pos == index)
-	{
-		isCached = true;
-		lastIndexGot = index;
-		lastNodeGot = current;
-
-		return current;
-	}
-
-	return NULL;
+DListNode<T>* DLinkedList<T>::getNode(int index) {
+    if (index < 0 || index >= _size) return NULL;
+    DListNode<T>* current = root;
+    for (int i = 0; i < index; i++) {
+        current = current->next;
+    }
+    return current;
 }
 
 template <typename T>
-int DLinkedList<T>::size()
-{
-	return _size;
+int DLinkedList<T>::size() const {
+    return _size;
 }
 
+// Add a node at the specific index
 template <typename T>
-bool DLinkedList<T>::add(int index, T _t)
-{
+bool DLinkedList<T>::add(int index, T value) {
+    if (index < 0 || index > _size) return false;
+    if (index == 0) return unshift(value);
+    if (index == _size) return add(value);
 
-	if (index >= _size)
-		return add(_t);
+    DListNode<T>* prevNode = getNode(index - 1);
+    if (!prevNode) return false;
 
-	if (index == 0)
-		return unshift(_t);
+    DListNode<T>* newNode = new DListNode<T>;
+    newNode->data = value;
+    newNode->next = prevNode->next;
 
-	DListNode<T> *tmp = new DListNode<T>(),
-				*_prev = getNode(index - 1);
-	tmp->data = _t;
-	tmp->next = _prev->next;
-	_prev->next = tmp;
+    prevNode->next = newNode;
 
-	_size++;
-	isCached = false;
-
-	return true;
+    _size++;
+    return true;
 }
 
+// Add a node at the end
 template <typename T>
-bool DLinkedList<T>::add(T _t)
-{
+bool DLinkedList<T>::add(T value) {
+    DListNode<T>* newNode = new DListNode<T>;
+    newNode->data = value;
+    newNode->next = NULL;
 
-	DListNode<T> *tmp = new DListNode<T>();
-	tmp->data = _t;
-	tmp->next = NULL;
-
-	if (root)
-	{
-		// Already have elements inserted
-		last->next = tmp;
-		last = tmp;
-	}
-	else
-	{
-		// First element being inserted
-		root = tmp;
-		last = tmp;
-	}
-
-	_size++;
-	isCached = false;
-
-	return true;
+    if (last) {
+        last->next = newNode;
+    } else {
+        root = newNode;
+    }
+    last = newNode;
+    _size++;
+    return true;
 }
 
+// Add a node at the beginning
 template <typename T>
-bool DLinkedList<T>::unshift(T _t)
-{
+bool DLinkedList<T>::unshift(T value) {
+    DListNode<T>* newNode = new DListNode<T>;
+    newNode->data = value;
+    newNode->next = root;
 
-	if (_size == 0)
-		return add(_t);
-
-	DListNode<T> *tmp = new DListNode<T>();
-	tmp->next = root;
-	tmp->data = _t;
-	root = tmp;
-
-	_size++;
-	isCached = false;
-
-	return true;
+    root = newNode;
+    if (_size == 0) last = newNode;
+    _size++;
+    return true;
 }
 
+// Set a node's value at the specific index
 template <typename T>
-bool DLinkedList<T>::set(int index, T _t)
-{
-	// Check if index position is in bounds
-	if (index < 0 || index >= _size)
-		return false;
-
-	getNode(index)->data = _t;
-	return true;
+bool DLinkedList<T>::set(int index, T value) {
+    DListNode<T>* node = getNode(index);
+    if (!node) return false;
+    node->data = value;
+    return true;
 }
 
+// Remove a node at the specific index
 template <typename T>
-T DLinkedList<T>::pop()
-{
-	if (_size <= 0)
-		return T();
+T DLinkedList<T>::remove(int index) {
+    if (index < 0 || index >= _size) return T();
+    if (index == 0) return shift();
 
-	isCached = false;
+    DListNode<T>* prevNode = getNode(index - 1);
+    DListNode<T>* nodeToDelete = prevNode->next;
+    prevNode->next = nodeToDelete->next;
+    if (nodeToDelete == last) last = prevNode;
 
-	if (_size >= 2)
-	{
-		DListNode<T> *tmp = getNode(_size - 2);
-		T ret = tmp->next->data;
-		delete (tmp->next);
-		tmp->next = NULL;
-		last = tmp;
-		_size--;
-		return ret;
-	}
-	else
-	{
-		// Only one element left on the list
-		T ret = root->data;
-		delete (root);
-		root = NULL;
-		last = NULL;
-		_size = 0;
-		return ret;
-	}
+    T value = nodeToDelete->data;
+    delete nodeToDelete;
+    _size--;
+    return value;
 }
 
+// Remove the last node
 template <typename T>
-T DLinkedList<T>::shift()
-{
-	if (_size <= 0)
-		return T();
-
-	if (_size > 1)
-	{
-		DListNode<T> *_next = root->next;
-		T ret = root->data;
-		delete (root);
-		root = _next;
-		_size--;
-		isCached = false;
-
-		return ret;
-	}
-	else
-	{
-		// Only one left, then pop()
-		return pop();
-	}
+T DLinkedList<T>::pop() {
+    if (_size == 0) return T();
+    return remove(_size - 1);
 }
 
+// Remove the first node
 template <typename T>
-T DLinkedList<T>::remove(int index)
-{
-	if (index < 0 || index >= _size)
-	{
-		return T();
-	}
+T DLinkedList<T>::shift() {
+    if (_size == 0) return T();
 
-	if (index == 0)
-		return shift();
+    DListNode<T>* nodeToDelete = root;
+    root = root->next;
+    if (root == NULL) last = NULL;
 
-	if (index == _size - 1)
-	{
-		return pop();
-	}
-
-	DListNode<T> *tmp = getNode(index - 1);
-	DListNode<T> *toDelete = tmp->next;
-	T ret = toDelete->data;
-	tmp->next = tmp->next->next;
-	delete (toDelete);
-	_size--;
-	isCached = false;
-	return ret;
+    T value = nodeToDelete->data;
+    delete nodeToDelete;
+    _size--;
+    return value;
 }
 
+// Get the value at the specific index
 template <typename T>
-T DLinkedList<T>::get(int index)
-{
-	DListNode<T> *tmp = getNode(index);
-
-	return (tmp ? tmp->data : T());
+T DLinkedList<T>::get(int index) {
+    DListNode<T>* node = getNode(index);
+    return node ? node->data : T();
 }
 
+// Clear the list
 template <typename T>
-void DLinkedList<T>::clear()
-{
-	while (size() > 0)
-		shift();
+void DLinkedList<T>::clear() {
+    while (_size > 0) shift();
 }
 
 #endif
